@@ -1,46 +1,50 @@
 package fp.workshop.ddd.domain.board
 
+import cats._
+import cats.implicits._
 import fp.workshop.ddd.infrastructure.domain.advert.Advert
 import fp.workshop.ddd.infrastructure.domain.author.Author
 import monix.eval.Task
 
 final case class Board private(
-  private val boardService: BoardService,
-  boardId: Board.Id,
+  boardId: Board.ID,
   name: String
-) {
-
-  def posts: Task[Vector[Post]] = {
-    boardService.findPosts(boardId)
-  }
-
-  def adverts: Task[Vector[Advert]] = {
-    boardService.findAdvertsForBoard(name)
-  }
-
-  def publishPost(title: String, content: String, author: Author): Task[Post] = {
-    boardService.publishPost(boardId, title, content, author)
-  }
-
-  def print(): Task[Unit] = {
-    Task
-      .map2(
-        boardService
-          .findPosts(boardId)
-          .map(_.map(post =>
-            s"=======================\n${post.author.name}: ${post.title}\n${post.content}"
-          )),
-        boardService
-          .findAdvertsForBoard(name)
-          .map(_.map(advert => s"adv ${advert.title}"))
-      ) {
-        case (posts, adverts) =>
-          posts.foreach(println)
-          adverts.foreach(println)
-      }
-  }
-}
+)
 
 object Board {
-  type Id = String
+  type ID = String
+
+  class BoardExtensions(board: Board) {
+
+    def posts[M[_] : Monad](implicit boardService: BoardService[M]): M[Vector[Post]] = {
+      boardService.findPosts(board.boardId)
+    }
+
+    def adverts[M[_] : Monad](implicit boardService: BoardService[M], fK: (Task ~> M)): M[Vector[Advert]] = {
+      boardService.findAdvertsForBoard(board.name)
+    }
+
+    def publishPost[M[_] : Monad](
+      title: String, content: String, author: Author
+    )(implicit boardService: BoardService[M]): M[Either[String, Post]] = {
+      boardService.publishPost(board.boardId, title, content, author)
+    }
+
+    def print[M[_] : Monad](implicit boardService: BoardService[M], fK: (Task ~> M)): M[Unit] = {
+      for {
+        items <- posts[M].map(_.map(post =>
+          s"=======================\n${post.author.name}: ${post.title}\n${post.content}"
+        ))
+        adverts <- adverts[M].map(_.map(advert => s"adv ${advert.title}"))
+      } yield {
+        items.foreach(println)
+        adverts.foreach(println)
+      }
+    }
+  }
+
+  implicit def boardExtensions(board: Board): BoardExtensions = {
+    new BoardExtensions(board)
+  }
+
 }

@@ -2,19 +2,18 @@ package fp.workshop.ddd.domain.board.infrastructure.repositories
 
 import java.util.UUID
 
+import cats._
 import fp.workshop.ddd.domain.board.infrastructure.repositories.PostRepository.DbPost
 
-import scala.concurrent.Future
+trait PostRepository[M[_]] {
 
-private[board] trait PostRepository {
+  def findOne(id: UUID): M[Option[DbPost]]
 
-  def findOne(id: UUID): Future[Option[DbPost]]
+  def findAllMorBoard(boardId: String): M[Vector[DbPost]]
 
-  def findAllForBoard(boardId: String): Future[Vector[DbPost]]
+  def store(post: DbPost): M[DbPost]
 
-  def store(post: DbPost): Future[DbPost]
-
-  def delete(id: UUID): Future[Boolean]
+  def delete(id: UUID): M[Boolean]
 }
 
 private[board] object PostRepository {
@@ -27,26 +26,26 @@ private[board] object PostRepository {
     content: String
   )
 
-  class PostRepositoryImpl extends PostRepository {
+  implicit def postHandler[M[_] : Monad]: PostRepository[M] = new PostRepository[M] {
 
     private var kv = Map[UUID, DbPost]()
 
-    override def findOne(id: UUID): Future[Option[DbPost]] = {
-      Future.successful(kv.get(id))
+    override def findOne(id: UUID): M[Option[DbPost]] = {
+      Monad[M].pure(kv.get(id))
     }
 
-    override def findAllForBoard(boardId: String): Future[Vector[DbPost]] = {
-      Future.successful(kv.filter { case (_, post) => post.boardId == boardId }.values.toVector)
+    override def findAllMorBoard(boardId: String): M[Vector[DbPost]] = {
+      Monad[M].pure(kv.filter { case (_, post) => post.boardId == boardId }.values.toVector)
     }
 
-    override def store(post: DbPost): Future[DbPost] = {
+    override def store(post: DbPost): M[DbPost] = {
       kv = kv.updated(post.id, post)
-      Future.successful(post)
+      Monad[M].pure(post)
     }
 
-    override def delete(id: UUID): Future[Boolean] = {
+    override def delete(id: UUID): M[Boolean] = {
       kv = kv - id
-      Future.successful(true)
+      Monad[M].pure(true)
     }
   }
 }

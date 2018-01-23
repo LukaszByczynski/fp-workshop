@@ -17,7 +17,7 @@ object OopApp extends App {
   val boardRepository = new BoardRepositoryImpl()
   val postService = new PostService()
 
-  def createBoards(): Any = {
+  def createBoards(): Unit = {
     boardRepository.store(Board("1", "OOP Programming"))
     boardRepository.store(Board("2", "FP Programming"))
 
@@ -25,6 +25,7 @@ object OopApp extends App {
     postService.createPost(CreatePost("1", "2", "Second post", ""))
 
     postService.createPost(CreatePost("2", "1", "FP rules", ""))
+    ()
   }
 
   def printBoard(boardId: String): Unit = {

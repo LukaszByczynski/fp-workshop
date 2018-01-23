@@ -2,77 +2,80 @@ package fp.workshop.ddd.domain.board
 
 import java.util.UUID
 
-import fp.workshop.ddd.domain.board.Board.Id
-import fp.workshop.ddd.domain.board.infrastructure.repositories.BoardRepository.{BoardRepositoryImpl, DbBoard}
-import fp.workshop.ddd.domain.board.infrastructure.repositories.PostRepository.{DbPost, PostRepositoryImpl}
+import cats._
+import cats.data.EitherT
+import cats.implicits._
+import fp.workshop.ddd.domain.board.infrastructure.repositories.BoardRepository.DbBoard
+import fp.workshop.ddd.domain.board.infrastructure.repositories.PostRepository.DbPost
 import fp.workshop.ddd.domain.board.infrastructure.repositories.{BoardRepository, PostRepository}
 import fp.workshop.ddd.infrastructure.domain.advert.{Advert, AdvertClient}
 import fp.workshop.ddd.infrastructure.domain.author.{Author, AuthorClient}
 import fp.workshop.oop.infrastructure.hermes.HermesClient
 import monix.eval.Task
 
-import scala.concurrent.ExecutionContext
+import scala.util.Try
 
-class BoardService private(
-  postRepository: PostRepository,
-  boardRepository: BoardRepository,
-  advertClient: AdvertClient,
-  authorClient: AuthorClient
-) {
+class BoardService[M[_] : Monad](
+  authorClient: AuthorClient,
+  advertClient: AdvertClient
+)(implicit boardRepository: BoardRepository[M], postRepository: PostRepository[M]) {
 
-  def createBoard(name: String): Task[Board] = {
-    Task {
-      val dbBoard = DbBoard(UUID.randomUUID().toString, name)
-      boardRepository.store(dbBoard)
-      Board(this, dbBoard.id, dbBoard.name)
-    }
+  def createBoard(name: String): M[Board] = {
+    val dbBoard = DbBoard(UUID.randomUUID().toString, name)
+
+    for {
+      _ <- boardRepository.store(dbBoard)
+    } yield Board(dbBoard.id, dbBoard.name)
   }
 
-  def findBoard(boardId: String): Task[Option[Board]] = Task {
-    boardRepository.findOne(boardId).map(
-      dbBoard => Board(this, dbBoard.id, dbBoard.name)
-    )
+  def findBoard(boardId: String): M[Option[Board]] = {
+    boardRepository.findOne(boardId).map(_.map(
+      dbBoard => Board(dbBoard.id, dbBoard.name)
+    ))
   }
 
-  private[board] def publishPost(boardId: Id, title: String, content: String, author: Author): Task[Post] = {
+  private[board] def publishPost(boardId: Board.ID, title: String, content: String, author: Author): M[Either[String, Post]] = {
     val uuid = UUID.randomUUID()
 
-    Task
-      .fromFuture(postRepository.store(DbPost(uuid, boardId, author.id, title, content)))
-      .flatMap(_ => Task {
-        HermesClient.publishEvent("post.created", s"$boardId:$uuid")
-        Post(this, uuid.toString, title, content, author)
-      }.onErrorRestart(4))
-  }
-
-  private[board] def findPosts(boardId: Id): Task[Vector[Post]] = {
-    Task
-      .fromFuture(postRepository.findAllForBoard(boardId))
-      .flatMap { items =>
-        Task {
-          items.map { dbPost =>
-            val author = authorClient.findOne(dbPost.authorId).getOrElse(throw new NoSuchElementException)
-            Post(this, dbPost.id.toString, dbPost.title, dbPost.content, author)
-          }
-        }
-      }
-  }
-
-  private[board] def findAdvertsForBoard(phrase: String): Task[Vector[Advert]] = {
-    Task.fromFuture {
-      advertClient.findAdvertsForPhrase(phrase)
+    val program = for {
+      _ <- EitherT.liftF(postRepository.store(DbPost(uuid, boardId, author.id, title, content)))
+      _ <- EitherT.fromEither[M](
+        Try(HermesClient.publishEvent("post.created", s"$boardId:$uuid")).toEither.leftMap(_.toString)
+      )
+    } yield {
+      Post(uuid.toString, title, content, author)
     }
+
+    program.value
+  }
+
+  def findPosts(boardId: String): M[Vector[Post]] = {
+    for {
+      items <- postRepository.findAllMorBoard(boardId)
+      authors <- Monad[M].pure(
+        items.map(dbPost => authorClient.findOne(dbPost.authorId).getOrElse(throw new NoSuchElementException))
+      )
+    } yield {
+      items.zip(authors).map {
+        case (item, author) => Post(item.id.toString, item.title, item.content, author)
+      }
+    }
+  }
+
+  private[board] def findAdvertsForBoard(phrase: String)(implicit fK: (Task ~> M)): M[Vector[Advert]] = {
+    fK(Task.fromFuture(advertClient.findAdvertsForPhrase(phrase)))
   }
 }
 
+
 object BoardService {
 
-  def create(implicit ec: ExecutionContext): BoardService = {
-    new BoardService(
-      new PostRepositoryImpl,
-      new BoardRepositoryImpl,
-      new AdvertClient,
-      new AuthorClient
-    )
-  }
+  import fp.workshop.ddd.domain.board.infrastructure.repositories.BoardRepository._
+  import fp.workshop.ddd.domain.board.infrastructure.repositories.PostRepository._
+
+  def create[M[_] : Monad] = new BoardService[M](
+    new AuthorClient,
+    new AdvertClient
+  )
+
 }
