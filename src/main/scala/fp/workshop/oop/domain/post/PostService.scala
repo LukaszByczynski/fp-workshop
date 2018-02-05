@@ -29,7 +29,8 @@ class PostService {
           case Some(dbPost) =>
             repository
               .store(dbPost.copy(content = updatePost.content))
-              .map(updateDbPost => HermesClient.publishEvent("post.updated", s"${dbPost.boardId}:${toPost(updateDbPost)}"))
+              .map(updateDbPost =>
+                HermesClient.publishEvent("post.updated", s"${dbPost.boardId}:${toPost(updateDbPost)}"))
           case _ => Future.failed(new NoSuchElementException)
         }
 

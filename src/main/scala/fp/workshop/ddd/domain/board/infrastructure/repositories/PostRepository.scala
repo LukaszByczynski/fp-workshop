@@ -26,7 +26,7 @@ private[board] object PostRepository {
     content: String
   )
 
-  implicit def postHandler[M[_] : Monad]: PostRepository[M] = new PostRepository[M] {
+  implicit def postHandler[M[_]: Monad]: PostRepository[M] = new PostRepository[M] {
 
     private var kv = Map[UUID, DbPost]()
 

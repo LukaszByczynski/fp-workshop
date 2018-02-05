@@ -11,4 +11,3 @@ class AuthorClient {
   def findOne(id: String): Option[Author] = kv.get(id)
 
 }
-

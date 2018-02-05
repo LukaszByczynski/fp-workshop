@@ -4,7 +4,7 @@ import java.util.UUID
 
 import scala.concurrent.Future
 
-private [post] trait PostRepository {
+private[post] trait PostRepository {
 
   def findOne(id: UUID): Future[Option[DbPost]]
 
@@ -15,7 +15,7 @@ private [post] trait PostRepository {
   def delete(id: UUID): Future[Boolean]
 }
 
-private [post] class PostRepositoryImpl extends PostRepository {
+private[post] class PostRepositoryImpl extends PostRepository {
 
   private var kv = Map[UUID, DbPost]()
 

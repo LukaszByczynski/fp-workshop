@@ -11,4 +11,3 @@ class AuthorService {
   def findOne(id: String): Option[Author] = kv.get(id)
 
 }
-

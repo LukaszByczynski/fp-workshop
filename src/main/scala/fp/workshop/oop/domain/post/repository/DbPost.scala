@@ -9,4 +9,3 @@ private[post] case class DbPost(
   title: String,
   content: String
 )
-

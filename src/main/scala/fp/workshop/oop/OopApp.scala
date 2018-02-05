@@ -31,8 +31,8 @@ object OopApp extends App {
   def printBoard(boardId: String): Unit = {
     val posts = Await.result(
       for {
-        board <- Future.successful(boardRepository.findOne(boardId))
-        posts <- postService.findAllForBoard(boardId)
+        board   <- Future.successful(boardRepository.findOne(boardId))
+        posts   <- postService.findAllForBoard(boardId)
         adverts <- advertClient.findAdvertsForPhrase(board.map(_.name).getOrElse(""))
       } yield {
         posts.map { post =>

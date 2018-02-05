@@ -15,34 +15,40 @@ object DDDApp extends App {
   val user1 = authorClient.findOne("1").get
   val user2 = authorClient.findOne("2").get
 
-  def oopBoardTaskProgram[M[_] : Monad, A[_]](implicit boardService: BoardService[M], P: Parallel[M, A]): EitherT[M, String, Board] = {
+  def oopBoardTaskProgram[M[_]: Monad, A[_]](
+    implicit boardService: BoardService[M],
+    P: Parallel[M, A]): EitherT[M, String, Board] = {
     for {
       oopBoard <- EitherT.liftF(boardService.createBoard("OOP Programming"))
-      _ <- EitherT.liftF[M, String, Unit]((
+      _ <- EitherT.liftF[M, String, Unit](
+        (
           oopBoard.publishPost[M]("First post", "content", user1),
           oopBoard.publishPost[M]("Second post", "content", user2)
-        ).parMapN { case _ => ()})
+        ).parMapN { case _ => () })
     } yield {
       oopBoard
     }
   }
 
-  def fpBoardTaskProgram[M[_] : Monad](implicit boardService: BoardService[M]): EitherT[M, String, Board] = {
+  def fpBoardTaskProgram[M[_]: Monad](implicit boardService: BoardService[M]): EitherT[M, String, Board] = {
     for {
       fpBoard <- EitherT.liftF(boardService.createBoard("MP Programming"))
-      _ <- EitherT(fpBoard.publishPost[M]("Mirst post", "content", user1))
+      _       <- EitherT(fpBoard.publishPost[M]("Mirst post", "content", user1))
     } yield {
       fpBoard
     }
   }
 
   /*_*/
-  def program[M[_] : Monad, A[_]](implicit boardService: BoardService[M], P: Parallel[M, A], fK: (Task ~> M)): EitherT[M, String, String] = {
+  def program[M[_]: Monad, A[_]](
+    implicit boardService: BoardService[M],
+    P: Parallel[M, A],
+    fK: (Task ~> M)): EitherT[M, String, String] = {
     for {
       oopBoard <- oopBoardTaskProgram[M, A]
-      fpBoard <- fpBoardTaskProgram[M]
+      fpBoard  <- fpBoardTaskProgram[M]
       boards <- List(oopBoard.boardId, fpBoard.boardId)
-          .traverse(id => EitherT.fromOptionF(boardService.findBoard(id), "Board not found!"))
+        .traverse(id => EitherT.fromOptionF(boardService.findBoard(id), "Board not found!"))
       _ <- boards.traverse(board => EitherT.liftF[M, String, Unit](board.print[M]))
     } yield {
       fK.toString;

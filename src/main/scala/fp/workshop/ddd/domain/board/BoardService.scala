@@ -15,7 +15,7 @@ import monix.eval.Task
 
 import scala.util.Try
 
-class BoardService[M[_] : Monad](
+class BoardService[M[_]: Monad](
   authorClient: AuthorClient,
   advertClient: AdvertClient
 )(implicit boardRepository: BoardRepository[M], postRepository: PostRepository[M]) {
@@ -29,12 +29,19 @@ class BoardService[M[_] : Monad](
   }
 
   def findBoard(boardId: String): M[Option[Board]] = {
-    boardRepository.findOne(boardId).map(_.map(
-      dbBoard => Board(dbBoard.id, dbBoard.name)
-    ))
+    boardRepository
+      .findOne(boardId)
+      .map(
+        _.map(
+          dbBoard => Board(dbBoard.id, dbBoard.name)
+        ))
   }
 
-  private[board] def publishPost(boardId: Board.ID, title: String, content: String, author: Author): M[Either[String, Post]] = {
+  private[board] def publishPost(
+    boardId: Board.ID,
+    title: String,
+    content: String,
+    author: Author): M[Either[String, Post]] = {
     val uuid = UUID.randomUUID()
 
     val program = for {
@@ -67,13 +74,12 @@ class BoardService[M[_] : Monad](
   }
 }
 
-
 object BoardService {
 
   import fp.workshop.ddd.domain.board.infrastructure.repositories.BoardRepository._
   import fp.workshop.ddd.domain.board.infrastructure.repositories.PostRepository._
 
-  def create[M[_] : Monad] = new BoardService[M](
+  def create[M[_]: Monad] = new BoardService[M](
     new AuthorClient,
     new AdvertClient
   )

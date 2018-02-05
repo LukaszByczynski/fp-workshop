@@ -19,7 +19,7 @@ private[board] object BoardRepository {
 
   final case class DbBoard(id: String, name: String)
 
-  implicit def boardHandler[M[_] : Monad]: BoardRepository[M] = new BoardRepository[M] {
+  implicit def boardHandler[M[_]: Monad]: BoardRepository[M] = new BoardRepository[M] {
 
     private var kv = Map[String, DbBoard]()
 
