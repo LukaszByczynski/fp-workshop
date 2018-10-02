@@ -1,6 +1,7 @@
 package fp.workshop.part1
 
 object fp09_apply {
+
   import cats.Apply
 
   object ap {
@@ -11,6 +12,5 @@ object fp09_apply {
       override def map[A, B](fa: Either[String, A])(f: A => B): Either[String, B] = fa.map(f)
     }
   }
-
 
 }

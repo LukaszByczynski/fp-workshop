@@ -1,9 +1,11 @@
 package fp.workshop.part1
 
 object fp08_functor {
+
   import cats.Functor
 
   object fmap {
+
     val listFunctor: Functor[List] = new Functor[List] {
       override def map[A, B](fa: List[A])(f: A => B): List[B] = ???
     }
@@ -22,4 +24,5 @@ object fp08_functor {
   object lift {
     val liftFunctor: List[Int] => List[Int] = ???
   }
+
 }

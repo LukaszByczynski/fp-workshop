@@ -21,11 +21,15 @@ object fp02_types {
   object sums {
 
     sealed trait Currency
+
     case object USD extends Currency
+
     case object EUR extends Currency
+
     case object ILS extends Currency
 
     // true sums are only possible with shapeless co-products and
     // will be available in Scala 3
   }
+
 }

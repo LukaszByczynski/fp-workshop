@@ -12,6 +12,7 @@ object fp03_kinds {
   // Scala does not have a kind annotation that looks like this: def foo[F: * => *, A: *](a: A).
   // All types default to kind of * (star), so we use this:
   def foo[F[_], A](fa: F[A]): F[A] = ???
+
   def bar[F[_, _], A, B](fa: F[A, B]): F[A, B] = ???
 
   trait Sized[F[_]] {
@@ -25,6 +26,6 @@ object fp03_kinds {
   lazy val SizedMap: Sized[MapT] = ???
 
   // we can use existential type
-  type MapE[K] = Map[K,  T forSome { type T}]
+  type MapE[K] = Map[K, T forSome {type T}]
   lazy val SizedMapE: Sized[MapE] = ???
 }

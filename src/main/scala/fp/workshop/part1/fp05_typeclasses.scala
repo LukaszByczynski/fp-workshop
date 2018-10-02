@@ -35,13 +35,14 @@ object fp05_typeclasses {
       trait MotoGlider extends Moto with Glider
 
       val motoGlider: MotoGlider = new MotoGlider {}
-//      motoGlider.park
+      //      motoGlider.park
     }
 
     object typeclasses {
 
       trait Moto {
         val fuelLevel: Int = 33
+
         def drive(): Unit = println("I'm driving on the road")
       }
 
@@ -55,10 +56,12 @@ object fp05_typeclasses {
       // to make it easier to use typeclasses
 
       val motoGlider = new MotoGlider {}
-//      motoGlider.park()
+      //      motoGlider.park()
 
       val moto = new Moto {}
-//      moto.park()
+      //      moto.park()
     }
+
   }
+
 }

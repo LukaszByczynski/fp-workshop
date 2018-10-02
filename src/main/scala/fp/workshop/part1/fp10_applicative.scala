@@ -1,9 +1,11 @@
 package fp.workshop.part1
 
 object fp10_applicative {
+
   import cats.Applicative
 
   object syntax {
+
     val listApplicative = new Applicative[List] {
       override def pure[A](x: A): List[A] = ???
 
@@ -18,10 +20,12 @@ object fp10_applicative {
   }
 
   object example {
-    import cats.syntax.apply._
+
     import cats.instances.option._
+    import cats.syntax.apply._
 
     object Connection
+
     case class Config(user: Option[String], pass: Option[String])
 
     def createConnection(config: Config): Option[Connection.type] = {
@@ -31,4 +35,5 @@ object fp10_applicative {
     }
 
   }
+
 }
